@@ -4,8 +4,9 @@ import { Textarea } from "./components/ui/textarea";
 import { onMounted, ref } from "vue";
 import DarkModeSwitcher from "./components/DarkModeSwitcher.vue";
 import { GoogleGenAI } from "@google/genai";
-import { TrashIcon, Volume2Icon } from "lucide-vue-next";
+import { Volume2Icon } from "lucide-vue-next";
 import DeleteChat from "./components/DeleteChat.vue";
+// import VchatAI from "./components/VchatAI.vue";
 
 interface Chat {
   text: string;
@@ -38,7 +39,7 @@ async function generateContent(inputText: string) {
 
 // Speak text using Voicevox
 // Get speakerId from speakers.json and https://voicevox.hiroshiba.jp/
-async function speakText(text: string, speakerId = 3) {
+async function speakText(text: string, speakerId = 18) {
   isSpeaking.value = true;
   const baseUrl = "http://127.0.0.1:50021";
 
@@ -158,6 +159,7 @@ onMounted(() => {
         ></div>
       </div>
     </div>
+    <!-- <VchatAI /> -->
     <div class="flex flex-col gap-5">
       <Textarea v-model="inputText" placeholder="Write your chat here..." />
       <Button
