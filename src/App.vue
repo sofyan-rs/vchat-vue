@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Button } from "@/components/ui/button";
 import { Textarea } from "./components/ui/textarea";
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import DarkModeSwitcher from "./components/DarkModeSwitcher.vue";
 import { GoogleGenAI } from "@google/genai";
+import { TrashIcon, Volume2Icon } from "lucide-vue-next";
+import DeleteChat from "./components/DeleteChat.vue";
 
 interface Chat {
   text: string;
@@ -13,6 +15,7 @@ interface Chat {
 const inputText = ref<string>("");
 const chatList = ref<Chat[]>([]);
 const isLoading = ref<boolean>(false);
+const isSpeaking = ref<boolean>(false);
 
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GENAI_API_KEY });
 
@@ -25,12 +28,16 @@ async function generateContent(inputText: string) {
   // console.log(response.text);
   if (response.text) {
     addChat(response.text, "bot");
-    speakText(response.text);
+    if (isSpeaking.value === false) {
+      speakText(response.text);
+    }
+    saveChat();
     isLoading.value = false;
   }
 }
 
-async function speakText(text: string, speakerId = 20) {
+async function speakText(text: string, speakerId = 18) {
+  isSpeaking.value = true;
   const baseUrl = "http://127.0.0.1:50021";
 
   // Create audio query
@@ -63,22 +70,50 @@ async function speakText(text: string, speakerId = 20) {
   // Create an audio element and play the sound
   const audio = new Audio(audioUrl);
   audio.play();
+  audio.onended = () => {
+    isSpeaking.value = false;
+  };
 }
+
+const saveChat = () => {
+  const chatData = JSON.stringify(chatList.value);
+  localStorage.setItem("chatData", chatData);
+};
+
+const loadChat = () => {
+  const chatData = localStorage.getItem("chatData");
+  if (chatData) {
+    chatList.value = JSON.parse(chatData);
+  }
+};
 
 const addChat = (text: string, user: "me" | "bot") => {
   inputText.value = "";
   chatList.value.push({ text, user });
   if (user === "me") {
     generateContent(text);
+    saveChat();
   }
 };
+
+const deleteChat = () => {
+  chatList.value = [];
+  saveChat();
+};
+
+onMounted(() => {
+  loadChat();
+});
 </script>
 
 <template>
   <div class="border-b-4">
-    <div class="container mx-auto p-5 text-center flex justify-between">
+    <div class="container mx-auto p-5 gap-5 text-center flex justify-between">
       <h1 class="text-2xl font-semibold">VChat Voicevox</h1>
-      <DarkModeSwitcher />
+      <div class="flex gap-2">
+        <DarkModeSwitcher />
+        <DeleteChat :delete-chat="deleteChat" />
+      </div>
     </div>
   </div>
   <div class="container mx-auto p-5">
@@ -92,7 +127,7 @@ const addChat = (text: string, user: "me" | "bot") => {
         :class="chat.user === 'me' ? 'justify-end' : 'justify-start'"
       >
         <div
-          class="px-3 py-2 bg-gray-200 rounded-md mb-2"
+          class="px-3 py-2 bg-gray-200 rounded-md mb-2 relative"
           :class="
             chat.user === 'me'
               ? 'bg-sky-600 text-white'
@@ -100,7 +135,19 @@ const addChat = (text: string, user: "me" | "bot") => {
           "
         >
           {{ chat.text }}
+          <button
+            v-if="chat.user == 'bot'"
+            class="bg-sky-500 text-white p-2 absolute -top-5 rounded-md disabled:opacity-70"
+            @click="speakText(chat.text)"
+            :disabled="isSpeaking"
+          >
+            <Volume2Icon class="size-5" />
+          </button>
         </div>
+      </div>
+      <!-- Empty Chat -->
+      <div v-if="chatList.length === 0">
+        <p class="text-center text-slate-400">No chat yet</p>
       </div>
       <!-- Loading Chat -->
       <div v-if="isLoading" class="flex justify-center items-center">
