@@ -77,7 +77,7 @@ const addChat = (text: string, user: "me" | "bot") => {
 <template>
   <div class="border-b-4">
     <div class="container mx-auto p-5 text-center flex justify-between">
-      <h1 class="text-2xl font-semibold">VChat with Voicevox TTS</h1>
+      <h1 class="text-2xl font-semibold">VChat Voicevox</h1>
       <DarkModeSwitcher />
     </div>
   </div>
