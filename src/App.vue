@@ -36,7 +36,9 @@ async function generateContent(inputText: string) {
   }
 }
 
-async function speakText(text: string, speakerId = 18) {
+// Speak text using Voicevox
+// Get speakerId from speakers.json
+async function speakText(text: string, speakerId = 3) {
   isSpeaking.value = true;
   const baseUrl = "http://127.0.0.1:50021";
 
