@@ -4,7 +4,7 @@ import { Textarea } from "./components/ui/textarea";
 import { onMounted, ref } from "vue";
 import DarkModeSwitcher from "./components/DarkModeSwitcher.vue";
 import { GoogleGenAI } from "@google/genai";
-import { Volume2Icon } from "lucide-vue-next";
+import { DownloadIcon, Volume2Icon } from "lucide-vue-next";
 import DeleteChat from "./components/DeleteChat.vue";
 // import VchatAI from "./components/VchatAI.vue";
 
@@ -25,6 +25,7 @@ async function generateContent(inputText: string) {
   const response = await ai.models.generateContent({
     model: "gemini-2.0-flash",
     contents: `${inputText}\n\nPlease respond only in Japanese using hiragana, katakana, or kanji. Do not use English or romaji.`,
+    // contents: `${inputText}`,
   });
   // console.log(response.text);
   if (response.text) {
@@ -43,39 +44,45 @@ async function speakText(text: string, speakerId = 18) {
   isSpeaking.value = true;
   const baseUrl = "http://127.0.0.1:50021";
 
-  // Create audio query
   const queryResponse = await fetch(
     `${baseUrl}/audio_query?text=${encodeURIComponent(
       text
     )}&speaker=${speakerId}`,
-    {
-      method: "POST",
-    }
+    { method: "POST" }
   );
   const queryData = await queryResponse.json();
 
-  // Synthesize speech audio
   const synthResponse = await fetch(
     `${baseUrl}/synthesis?speaker=${speakerId}`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(queryData),
     }
   );
 
-  // Get the audio blob
   const audioBlob = await synthResponse.blob();
   const audioUrl = URL.createObjectURL(audioBlob);
 
-  // Create an audio element and play the sound
   const audio = new Audio(audioUrl);
   audio.play();
   audio.onended = () => {
     isSpeaking.value = false;
   };
+
+  return { audioBlob, audioUrl };
+}
+
+async function downloadVoice(text: string, speakerId = 18) {
+  const { audioBlob } = await speakText(text, speakerId);
+  const blobUrl = URL.createObjectURL(audioBlob);
+
+  const link = document.createElement("a");
+  link.href = blobUrl;
+  link.download = "voicevox_audio.wav";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 const saveChat = () => {
@@ -140,11 +147,18 @@ onMounted(() => {
           {{ chat.text }}
           <button
             v-if="chat.user == 'bot'"
-            class="bg-sky-500 text-white p-2 absolute -top-5 rounded-md disabled:opacity-70"
+            class="bg-sky-500 text-white p-2 absolute -top-6 -right-4 rounded-md disabled:opacity-70"
             @click="speakText(chat.text)"
             :disabled="isSpeaking"
           >
             <Volume2Icon class="size-5" />
+          </button>
+          <button
+            v-if="chat.user == 'bot'"
+            class="bg-emerald-500 text-white p-2 absolute -top-6 right-6 rounded-md disabled:opacity-70"
+            @click="downloadVoice(chat.text)"
+          >
+            <DownloadIcon class="size-5" />
           </button>
         </div>
       </div>
